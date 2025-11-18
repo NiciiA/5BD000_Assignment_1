@@ -159,7 +159,7 @@ Graphs that illustrate the population size over age groups and calendar year sim
 ```{r, fig.width = 10, fig.height = 8}
 year_breaks_pop <- seq(min(population$year), max(population$year), by = 5)
 
-# Create the improved graph using ggplot2 (line plot faceted by sex)
+# Line plot faceted by sex
 p3 <- ggplot(population, aes(x = year, y = n_pop, color = agegroup, group = agegroup)) +
   geom_line(linewidth = 0.8) +
   facet_wrap(~sex, scales = "free_y", ncol = 1) + # Separate panels for Male and Female
@@ -169,17 +169,16 @@ p3 <- ggplot(population, aes(x = year, y = n_pop, color = agegroup, group = ageg
     y = "Population Size (n_pop)",
     color = "Age Group"
   ) +
-  # --- Apply X-Axis Fix ---
   scale_x_continuous(
-    breaks = year_breaks_pop,             # Use breaks every 5 years
+    breaks = year_breaks_pop,             # Using breaks every 5 years
     labels = as.character(year_breaks_pop)
   ) +
   scale_y_continuous(labels = scales::comma) + # Format y-axis labels
   # --------------------------
   theme_minimal() +
   theme(
-    legend.position = "bottom", # Move legend for better layout
-    plot.title = element_text(hjust = 0.5) # Center the title
+    legend.position = "bottom", # Moving legend for better layout
+    plot.title = element_text(hjust = 0.5) # Centering the title
   )
 
 print(p3)
