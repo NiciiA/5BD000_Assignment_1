@@ -2,7 +2,7 @@
 title: "Bios-Assignment 1"
 author: "Keyan Li"
 date: "`r Sys.Date()`"
-output: html_document
+output: pdf_document
 ---
 
 # Task 7
@@ -19,7 +19,10 @@ df_combined <- inner_join(df_cases, df_pop, by = c("year", "sex", "agegroup"))
 
 ```{r}
 df_merged <- inner_join(df_cases, df_pop, by = c("year", "sex", "agegroup"))
+```
 
+
+```{r}
 # --- (Aggregation) ---
 df_model_data <- df_merged %>%
   group_by(year, sex) %>%
@@ -29,6 +32,8 @@ df_model_data <- df_merged %>%
     .groups = "drop"
   ) %>%
   mutate(sex = as.factor(sex)) 
+
+df_model_data
 
 # --- Poisson Regression ---
 model_smooth <- glm(total_cases ~ ns(year, df = 4) + sex + offset(log(total_pop)),
