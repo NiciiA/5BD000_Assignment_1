@@ -258,37 +258,27 @@ std_pop_2022 <- df_q11 %>%
   filter(year == 2022) %>%
   select(sex, age_mid, std_pop = n_pop)
 
-# --- Step 2: Prepare Prediction Data ---
-pred_grid <- expand.grid(
-  year = 1970:2022,              
-  age_mid = unique(df_q11$age_mid),
-  sex = unique(df_q11$sex),      
-  n_pop = 100000    
-)
-
-# Predict the rate using the spline model from Q11 (model_spline_age)
-pred_grid$pred_rate_per_person <- predict(model_spline_age, newdata = pred_grid, type = "response") / 100000
+# --- Step 2: Calculate Observed Age-Specific Rates---
+df_observed_rates <- df_q11 %>%
+  mutate(obs_rate_per_person = n / n_pop)
 
 # --- Step 3: Calculate Age-Standardized Rates (ASR) ---
-# Formula: Sum(Rate_age_i * Pop_std_age_i) / Total_std_pop
-df_standardized <- pred_grid %>%
+# Formula: Sum(Observed_Rate_age_i * Pop_std_age_i) / Total_std_pop
+df_standardized <- df_observed_rates %>%
   left_join(std_pop_2022, by = c("sex", "age_mid")) %>%
   group_by(year, sex) %>%
   summarise(
-    # Calculate the expected number of cases if the population was 2022's structure
-    expected_cases = sum(pred_rate_per_person * std_pop),
+    expected_cases = sum(obs_rate_per_person * std_pop),
     total_std_pop = sum(std_pop),
     .groups = "drop"
   ) %>%
   mutate(
-    # Convert to rate per 100,000
     rate = (expected_cases / total_std_pop) * 100000,
-    type = "Age-Standardized (2022 Pop)"
+    type = "Age-Standardized (Observed)" 
   ) %>%
   select(year, sex, rate, type)
 
 # --- Step 4: Calculate Crude Rates (for Comparison) ---
-# Recalculate the crude rate (Total Cases / Total Pop) for each year/sex
 df_crude <- df_q11 %>%
   group_by(year, sex) %>%
   summarise(
@@ -310,8 +300,8 @@ ggplot(df_final_plot, aes(x = year, y = rate, color = sex, linetype = type)) +
   geom_line(linewidth = 1.2) +
   scale_color_manual(values = c("Male" = "#1f77b4", "Female" = "#d62728")) +
   labs(
-    title = "Comparison of Crude vs. Age-Standardized Incidence Rates",
-    subtitle = "Standardized to the 2022 Swedish Population Structure",
+    title = "Crude vs. Direct Age-Standardized Incidence Rates",
+    subtitle = "Based on OBSERVED Data (Standardized to 2022 Population)",
     y = "Incidence Rate (per 100,000 person-years)",
     x = "Calendar Year",
     color = "Sex",
@@ -321,83 +311,74 @@ ggplot(df_final_plot, aes(x = year, y = rate, color = sex, linetype = type)) +
   theme(legend.position = "bottom")
 ```
 
-
 # Task 13
 ```{r}
 library(dplyr)
 library(ggplot2)
 
-# --- 1. Get the Weights (Standard Population: 2022) ---
+# ==============================================================================
+# Step 1: Define the Standard Population Weights (Year 2022)
 std_pop_weights <- df_q11 %>%
   filter(year == 2022) %>%
-  select(sex, age_mid, weight = n_pop)
+  select(sex, age_mid, std_weight = n_pop)
 
-# --- 2. Calculate Method A: Direct Standardization of OBSERVED Rates ---
+# ==============================================================================
+# Step 2: Method A - Direct Standardization of OBSERVED Rates (from Q12)
 df_asr_observed <- df_q11 %>%
-  left_join(std_pop_weights, by = c("sex", "age_mid")) %>%
   mutate(raw_rate = n / n_pop) %>%
+  left_join(std_pop_weights, by = c("sex", "age_mid")) %>%
   group_by(year, sex) %>%
   summarise(
-    weighted_sum = sum(raw_rate * weight),
-    total_weight = sum(weight),
+    weighted_sum = sum(raw_rate * std_weight),
+    total_weight = sum(std_weight),
     .groups = "drop"
   ) %>%
   mutate(
     rate = (weighted_sum / total_weight) * 100000,
-    method = "Observed (Empirical)"
+    method = "Observed (Direct)" # Label for the plot
   )
 
-# --- 3. Calculate Method B: Standardization of MODEL PREDICTED Rates ---
+# Step 3: Method B - Standardization of MODEL PREDICTED Rates (The Q13 Task)
+
 pred_grid <- expand.grid(
   year = 1970:2022,
   age_mid = unique(df_q11$age_mid),
   sex = unique(df_q11$sex),
-  n_pop = 100000
+  n_pop = 100000 # Arbitrary population base to calculate the rate
 )
-
-# Predict rates from the model
-pred_grid$pred_rate_per_person <- predict(model_spline_age, newdata = pred_grid, type = "response") / 100000
-
+pred_grid$pred_count <- predict(model_spline_age, newdata = pred_grid, type = "response")
+pred_grid$pred_rate_per_person <- pred_grid$pred_count / 100000
 df_asr_model <- pred_grid %>%
   left_join(std_pop_weights, by = c("sex", "age_mid")) %>%
   group_by(year, sex) %>%
   summarise(
-    weighted_sum = sum(pred_rate_per_person * weight),
-    total_weight = sum(weight),
+    weighted_sum = sum(pred_rate_per_person * std_weight),
+    total_weight = sum(std_weight),
     .groups = "drop"
   ) %>%
   mutate(
     rate = (weighted_sum / total_weight) * 100000,
-    method = "Model-Based (Smoothed)"
+    method = "Model-Based (Predicted)" 
   )
 
-# --- 4. Combine and Plot Comparison ---
+# Step 4: Combine and Plot the Comparison
 df_comparison <- bind_rows(df_asr_observed, df_asr_model)
-
 ggplot(df_comparison, aes(x = year, y = rate, color = sex, linetype = method)) +
   geom_line(aes(linewidth = method)) + 
-  scale_linewidth_manual(values = c("Observed (Empirical)" = 0.5, "Model-Based (Smoothed)" = 1.2)) +
   scale_color_manual(values = c("Male" = "#1f77b4", "Female" = "#d62728")) +
+  scale_linewidth_manual(values = c("Observed (Direct)" = 0.6, "Model-Based (Predicted)" = 1.2)) +
+  
   labs(
     title = "Comparison of Age-Standardized Rates",
-    subtitle = "Standardized to Sweden 2022 Population",
-    y = "Incidence Rate (per 100,000)",
+    subtitle = "Direct Standardization (Observed) vs. Model-Based Standardization (Predicted)\nStandardized to Sweden 2022 Population",
+    y = "Incidence Rate (per 100,000 person-years)",
     x = "Calendar Year",
     color = "Sex",
     linetype = "Method",
     linewidth = "Method"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
-
-
-
-
-
-
-
-
-
-
 
 
