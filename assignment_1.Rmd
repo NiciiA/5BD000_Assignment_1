@@ -1,17 +1,14 @@
 ---
 title: "5BD000 Assignment 1"
-author: "Nicolas Ackermann (19990225-T959)"
+author: "Nicolas Ackermann (19990225-T959), Andri Þór Stefánsson (19990320-1698),"
 date: "2025-11-18"
 output:
   pdf_document: default
-  html_document:
-    fig_caption: true
 ---
 
 ```{r setup, include = FALSE}
 # Set random seed for reproducibility using birthdate YYMMDD
 set.seed(022599)
-setwd("/Users/nicolasackermann/Projects/5BD000")
 # Load required packages, no additional packages used beyond base R
 ```
 
@@ -22,16 +19,13 @@ library(grid)
 
 ```{r}
 cases <- read.delim("cases-1.tsv", sep = "\t", header = TRUE)
-population <- read.delim("population-1.tsv", sep = "\t", header = TRUE)
 
 # Renaming because it is called n here and n_pop in the other file
 names(cases)[names(cases) == "n"] <- "n_cases"
 
 cases$year <- as.numeric(as.character(cases$year))
-population$year <- as.numeric(as.character(population$year))
 
 cases$agegroup <- factor(cases$agegroup, levels = unique(cases$agegroup))
-population$agegroup <- factor(population$agegroup, levels = unique(population$agegroup))
 ```
 
 ---
@@ -39,25 +33,12 @@ population$agegroup <- factor(population$agegroup, levels = unique(population$ag
 # Task 1: Cases by Age Group and Sex
 Showing the number of cases by age group and sex. Conclusion from the graph.
 
-```{r}
+```{r echo=FALSE}
 # Sum of cases per age group and sex across all years
 cases_agg_total <- aggregate(n_cases ~ agegroup + sex, data = cases, FUN = sum)
 
-# Stacked bars
-p1 <- ggplot(cases_agg_total, aes(x = agegroup, y = n_cases, fill = sex)) +
-  geom_bar(stat = "identity", position = "stack") +
-  labs(
-    title = "Stacked",
-    x = "Age Group (Years)",
-    y = "Number of Cases",
-    fill = "Sex"
-  ) +
-  scale_fill_manual(values = c("Female" = "#E69F00", "Male" = "#56B4E9")) + 
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 # Dodged bars
-p1_alt <- ggplot(cases_agg_total, aes(x = agegroup, y = n_cases, fill = sex)) +
+p1 <- ggplot(cases_agg_total, aes(x = agegroup, y = n_cases, fill = sex)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(
     title = "Side-by-side (Dodged)",
@@ -69,12 +50,8 @@ p1_alt <- ggplot(cases_agg_total, aes(x = agegroup, y = n_cases, fill = sex)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# Puting them next to each other
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(1, 2)))
 
-print(p1,     vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
-print(p1_alt, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
+print(p1)
 ```
 
 ### Observations:
@@ -87,26 +64,6 @@ The number of cases begins to increase rapidly starting around the 45-49 age gro
 
 The vast majority of cases occur in the elderly population, with the peak incidence observed in the 75-79 age group.
 
-```{r}
-p1_faceted <- ggplot(cases_agg_total, aes(x = agegroup, y = n_cases, fill = sex)) +
-  geom_bar(stat = "identity") +
-  # Separating the data into panels by sex
-  facet_wrap(~sex, scales = "free_y", ncol = 2) +
-  labs(
-    title = "Colon Cancer Cases by Age Group, Separated by Sex (All Years Combined)",
-    x = "Age Group (Years)",
-    y = "Number of Cases"
-  ) +
-  scale_fill_manual(values = c("Female" = "#E69F00", "Male" = "#56B4E9")) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "none", # Legend is not needed since panels are labelled
-    plot.title = element_text(hjust = 0.5)
-  )
-
-print(p1_faceted)
-```
 
 ---
 
@@ -117,7 +74,10 @@ Showing the number of cases over calendar years.
 ```{r}
 # Sum of cases per year and sex
 cases_yearly <- aggregate(n_cases ~ year + sex, data = cases, FUN = sum)
+```
 
+
+```{r echo=FALSE}
 # Only showing every 5th year for cleaner x-axis labels (overlaps otherwise)
 year_breaks <- seq(min(cases_yearly$year), max(cases_yearly$year), by = 5)
 
@@ -154,11 +114,22 @@ In the most recent years (around 2015 to 2022), the case counts for males and fe
 ---
 
 # Task 3: Population Size by Age, Year, and Sex
+
+```{r}
+population <- read.delim("population-1.tsv", sep = "\t", header = TRUE)
+population$year <- as.numeric(as.character(population$year))
+population$agegroup <- factor(population$agegroup, levels = unique(population$agegroup))
+```
+
+
 Graphs that illustrate the population size over age groups and calendar year simultaneously, separately by males and females.
 
-```{r, fig.width = 10, fig.height = 8}
+```{r}
 year_breaks_pop <- seq(min(population$year), max(population$year), by = 5)
+```
 
+
+```{r, fig.width = 10, fig.height = 8 echo=FALSE}
 # Line plot faceted by sex
 p3 <- ggplot(population, aes(x = year, y = n_pop, color = agegroup, group = agegroup)) +
   geom_line(linewidth = 0.8) +
