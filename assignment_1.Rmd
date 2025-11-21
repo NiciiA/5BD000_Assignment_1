@@ -1,6 +1,6 @@
 ---
 title: "5BD000 Assignment 1"
-author: "Nicolas Ackermann (19990225-T959), Andri Þór Stefánsson (19990320-1698),"
+author: "Nicolas Ackermann (19990225-T959), Andri Þór Stefánsson (19990320-1698),Linli Xu 19950826-R063"
 date: "2025-11-18"
 output:
   pdf_document: default
