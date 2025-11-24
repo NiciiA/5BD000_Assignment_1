@@ -369,6 +369,47 @@ target_data$predicted_rate <- predict(model_interaction,
 target_data
 ```
 
+Here is a plot I made to try to explain why the rate is now higher for men than for women.
+We see that the rate is higher in older age groups, and from earlier, when plotting the population, we saw that women reach older ages than men on average. that might be a part of the reason why the rate is higher for men in each age group.
+
+```{r}
+age_levels <- unique(df_merged$agegroup)
+
+target_data <- expand.grid(
+  year = seq(1970, 2020, by=1),
+  sex = c("Male","Female"),
+  agegroup = age_levels,
+  n_pop = 100000
+)
+
+
+# Ensure proper factor levels
+target_data$agegroup <- factor(target_data$agegroup, levels = age_levels)
+target_data$sex <- factor(target_data$sex, levels = c("Male","Female"))
+
+target_data$predicted_rate <- predict(model_interaction, 
+                                    newdata = target_data,
+                                    type = "response")
+
+target_data <- target_data %>% group_by(agegroup, sex) %>% summarize(predicted_rate = mean(predicted_rate))
+
+ggplot(target_data, aes(x = agegroup, y = predicted_rate, group = sex, color = sex)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "Predicted Incidence Rates by Age Group averaged over all years",
+    x = "Age Group",
+    y = "Predicted Incidence Rate per 100,000",
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+```
+
+
 # 11.
 
 
