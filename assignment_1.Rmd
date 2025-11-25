@@ -466,7 +466,8 @@ df_q11 <- merged_data %>%
     lower_bound = as.numeric(str_extract(agegroup, "^[0-9]+")),
     age_mid = lower_bound + 2
   )
-model_spline_age <- glm(n ~ ns(year, df = 4) * ns(age_mid, df = 4) * sex + offset(log(n_pop)),
+model_spline_age <- glm(n ~ ns(year, df = 4) * ns(age_mid, df = 4) + ns(year, df = 4) * sex,
+                        offset = log(n_pop),
                         family = poisson(link = "log"),
                         data = df_q11)
 
