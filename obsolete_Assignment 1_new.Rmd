@@ -199,8 +199,8 @@ df_q11 <- df_merged %>%
 ```
 
 ```{r}
-# ns(year, 4) * ns(age_mid, 4) * sex 
-model_spline_age <- glm(n ~ ns(year, df = 4) * ns(age_mid, df = 4) * sex + offset(log(n_pop)),
+# ns(year, df = 4) * sex + ns(age_mid, df = 4) * sex
+model_spline_age <- glm(n ~ ns(year, df = 4) * sex + ns(age_mid, df = 4) * sex + offset(log(n_pop)),
                         family = poisson(link = "log"),
                         data = df_q11)
 
