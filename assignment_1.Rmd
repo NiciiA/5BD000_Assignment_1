@@ -15,6 +15,8 @@ set.seed(022599)
 ```{r}
 library(ggplot2)
 library(grid)
+library(tidyverse)
+library(splines)
 ```
 
 ```{r}
@@ -152,6 +154,52 @@ p3 <- ggplot(population, aes(x = year, y = n_pop, color = agegroup, group = ageg
 print(p3)
 ```
 
+
+```{r, fig.width = 10, fig.height = 8}
+# Line plot faceted by sex
+population$agegroup2 <- ifelse(population$agegroup %in% c("0-4","5-9"), "0–9",
+                        ifelse(population$agegroup %in% c("10-14","15-19"), "10–19",
+                        ifelse(population$agegroup %in% c("20-24","25-29"), "20–29",
+                        ifelse(population$agegroup %in% c("30-34","35-39"), "30–39",
+                        ifelse(population$agegroup %in% c("40-44","45-49"), "40–49",
+                        ifelse(population$agegroup %in% c("50-54","55-59"), "50–59",
+                        ifelse(population$agegroup %in% c("60-64","65-69"), "60–69",
+                        ifelse(population$agegroup %in% c("70-74","75-79"), "70–79",
+                        ifelse(population$agegroup %in% c("80-84","85-89"), "80–89",
+                               NA)))))))))
+
+
+pop_collapsed <- aggregate(
+  n_pop ~ year + sex + agegroup2,
+  data = population,
+  FUN = sum
+)
+
+p32 <- ggplot(pop_collapsed, aes(x = year, y = n_pop, color = agegroup2, group = agegroup2)) +
+  geom_line(linewidth = 0.8) +
+  facet_wrap(~sex, scales = "free_y", ncol = 1) + # Separate panels for Male and Female
+  labs(
+    title = "Population Size (Persons at Risk) Over Calendar Years by Age Group and Sex",
+    x = "Calendar Year",
+    y = "Population Size (n_pop)",
+    color = "Age Group"
+  ) +
+  scale_x_continuous(
+    breaks = year_breaks_pop,             # Using breaks every 5 years
+    labels = as.character(year_breaks_pop)
+  ) +
+  scale_y_continuous(labels = scales::comma) + # Format y-axis labels
+  scale_color_brewer(palette = "Set1") +
+  # --------------------------
+  theme_minimal() +
+  theme(
+    legend.position = "bottom", # Moving legend for better layout
+    plot.title = element_text(hjust = 0.5) # Centering the title
+  )
+
+print(p32)
+```
+
 ```{r}
 p31 <- ggplot(population, aes(x = year, y = agegroup, fill = n_pop)) +
   geom_tile(color = "white") +                   
@@ -263,7 +311,7 @@ Focusing on plotting the Crude Incidence Rate (CIR) over time and applying a smo
 year_breaks_cir <- seq(min(totals_yearly$year), max(totals_yearly$year), by = 5)
 
 # Convert rate to 'per 100,000' for better readbility
-totals_yearly$cir_per_100k <- totals_yearly$incidence_rate_cir * 100000
+totals_yearly$cir_per_100k <- totals_yearly$cir * 100000
 
 p6 <- ggplot(totals_yearly, aes(x = year, y = cir_per_100k, color = sex)) +
   geom_point() +
@@ -385,7 +433,7 @@ target_data <- expand.grid(
 
 # Ensure proper factor levels
 target_data$agegroup <- factor(target_data$agegroup, levels = age_levels)
-target_data$sex <- factor(target_data$sex, levels = c("Male","Female"))
+target_data$sex <- factor(target_data$sex, levels = c("Female","Male"))
 
 target_data$predicted_rate <- predict(model_interaction, 
                                     newdata = target_data,
@@ -394,7 +442,7 @@ target_data$predicted_rate <- predict(model_interaction,
 target_data <- target_data %>% group_by(agegroup, sex) %>% summarize(predicted_rate = mean(predicted_rate))
 
 ggplot(target_data, aes(x = agegroup, y = predicted_rate, group = sex, color = sex)) +
-  geom_line(size = 1.2) +
+  geom_line(size = 1) +
   labs(
     title = "Predicted Incidence Rates by Age Group averaged over all years",
     x = "Age Group",
